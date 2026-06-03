@@ -105,6 +105,7 @@ fun MoviesScreen(
                     }
                 }
             } else {
+                val appendState = lazyMovieItems.loadState.append
                 LazyColumn(
                     modifier = Modifier.fillMaxSize()
                 ) {
@@ -123,7 +124,6 @@ fun MoviesScreen(
                     }
 
                     // Handle append (pagination scrolling) states
-                    val appendState = lazyMovieItems.loadState.append
                     if (appendState is LoadState.Loading) {
                         item {
                             Box(
@@ -132,7 +132,7 @@ fun MoviesScreen(
                                     .padding(16.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                CircularProgressIndicator()
+                                CircularProgressIndicator(modifier = Modifier.size(36.dp))
                             }
                         }
                     } else if (appendState is LoadState.Error) {
