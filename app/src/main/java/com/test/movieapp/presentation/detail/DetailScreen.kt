@@ -1,26 +1,32 @@
 package com.test.movieapp.presentation.detail
 
-import android.annotation.SuppressLint
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -42,14 +48,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
@@ -57,15 +64,19 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.test.movieapp.data.remote.api.ApiConstants
 import com.test.movieapp.domain.model.MovieDetail
 import com.test.movieapp.domain.model.Review
+import com.test.movieapp.presentation.components.MoviePosterImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetailScreen(
     movieId: Int,
     onBackClick: () -> Unit,
+    onThemeToggle: () -> Unit,
+    isDarkTheme: Boolean,
     viewModel: DetailViewModel = hiltViewModel()
 ) {
     val listState = rememberLazyListState()
@@ -119,7 +130,12 @@ fun DetailScreen(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(
+                        bottom = WindowInsets.navigationBars
+                            .asPaddingValues()
+                            .calculateBottomPadding() + 16.dp
+                    )
                 ) {
                     // 1. Backdrop Image
                     item {
@@ -231,10 +247,38 @@ fun DetailScreen(
                 }
             },
             navigationIcon = {
-                IconButton(onClick = onBackClick) {
+                IconButton(
+                    onClick = onBackClick,
+                    modifier = Modifier
+                        .padding(4.dp)
+                        .background(
+                            color = Color.Black.copy(alpha = (1f - appBarAlpha) * 0.4f),
+                            shape = CircleShape
+                        )
+                ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
+                        tint = if (appBarAlpha > 0.5f)
+                            MaterialTheme.colorScheme.onSurface
+                        else Color.White
+                    )
+                }
+            },
+            actions = {
+                IconButton(
+                    onClick = onThemeToggle,
+                    modifier = Modifier
+                        .padding(4.dp)
+                        .background(
+                            color = Color.Black.copy(alpha = (1f - appBarAlpha) * 0.4f),
+                            shape = CircleShape
+                        )
+                ) {
+                    Icon(
+                        imageVector = if (isDarkTheme) Icons.Default.LightMode
+                                      else Icons.Default.DarkMode,
+                        contentDescription = "Toggle theme",
                         tint = if (appBarAlpha > 0.5f)
                             MaterialTheme.colorScheme.onSurface
                         else Color.White
@@ -285,36 +329,15 @@ fun InfoSection(detail: MovieDetail) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
     ) {
-        // Poster Image
-        val posterUrl = detail.posterPath?.let { "${ApiConstants.IMAGE_BASE_URL_W92}$it" }
-        if (posterUrl != null) {
-            AsyncImage(
-                model = posterUrl,
-                contentDescription = detail.title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .width(120.dp)
-                    .height(180.dp)
-                    .clip(MaterialTheme.shapes.medium)
-            )
-        } else {
-            Box(
-                modifier = Modifier
-                    .width(120.dp)
-                    .height(180.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = MaterialTheme.shapes.medium
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No Poster",
-                    style = MaterialTheme.typography.bodySmall,
-                    textAlign = TextAlign.Center
-                )
-            }
-        }
+        MoviePosterImage(
+            path = detail.posterPath,
+            contentDescription = detail.title,
+            baseUrl = ApiConstants.IMAGE_BASE_URL_W92,
+            modifier = Modifier
+                .width(120.dp)
+                .height(180.dp)
+                .clip(MaterialTheme.shapes.medium)
+        )
 
         Spacer(modifier = Modifier.width(16.dp))
 
@@ -399,6 +422,8 @@ fun OverviewSection(overview: String) {
 
 @Composable
 fun TrailerSection(videoKey: String?) {
+    val context = LocalContext.current
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -409,23 +434,64 @@ fun TrailerSection(videoKey: String?) {
             style = MaterialTheme.typography.titleLarge
         )
         Spacer(modifier = Modifier.height(8.dp))
+
         if (videoKey != null) {
-            AndroidView(
-                factory = { context ->
-                    @SuppressLint("SetJavaScriptEnabled")
-                    WebView(context).apply {
-                        settings.javaScriptEnabled = true
-                        settings.domStorageEnabled = true
-                        settings.mediaPlaybackRequiresUserGesture = false
-                        webViewClient = WebViewClient()
-                        loadUrl("${ApiConstants.YOUTUBE_EMBED_URL}$videoKey")
-                    }
-                },
+            val thumbnailUrl = "https://img.youtube.com/vi/$videoKey/maxresdefault.jpg"
+
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(220.dp)
                     .clip(MaterialTheme.shapes.medium)
-            )
+                    .clickable {
+                        val uri = android.net.Uri.parse(
+                            "https://www.youtube.com/watch?v=$videoKey"
+                        )
+                        context.startActivity(
+                            android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
+                        )
+                    }
+            ) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(thumbnailUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = "Trailer thumbnail",
+                    contentScale = ContentScale.Crop,
+                    placeholder = ColorPainter(Color(0xFF1A1A1A)),
+                    error = ColorPainter(Color(0xFF1A1A1A)),
+                    modifier = Modifier.fillMaxSize()
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(64.dp)
+                        .background(Color.Black.copy(alpha = 0.7f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = "Play trailer",
+                        tint = Color.White,
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .padding(8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Tap to watch on YouTube",
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
         } else {
             Box(
                 modifier = Modifier
