@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -5,6 +7,11 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
+}
+
+val localProperties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) load(localPropertiesFile.inputStream())
 }
 
 android {
@@ -22,6 +29,12 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        buildConfigField(
+            "String",
+            "TMDB_API_KEY",
+            "\"${localProperties.getProperty("TMDB_API_KEY", "")}\""
+        )
     }
 
     buildTypes {

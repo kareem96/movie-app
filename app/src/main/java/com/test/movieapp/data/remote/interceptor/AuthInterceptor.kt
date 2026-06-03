@@ -20,6 +20,6 @@ class AuthInterceptor : Interceptor {
     }
 
     companion object {
-        private const val API_KEY = "0be47f8a233f2718d99d0c366369f1f8"
+        private val API_KEY = com.test.movieapp.BuildConfig.TMDB_API_KEY
     }
 }
