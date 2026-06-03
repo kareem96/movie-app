@@ -6,13 +6,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +24,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -36,6 +39,21 @@ fun GenreScreen(
     viewModel: GenreViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    val genreColors = listOf(
+        Color(0xFF1565C0), // Blue
+        Color(0xFF6A1B9A), // Purple
+        Color(0xFF00695C), // Teal
+        Color(0xFFE65100), // Orange
+        Color(0xFF4E342E), // Brown
+        Color(0xFF37474F), // Blue Grey
+        Color(0xFFC62828), // Red
+        Color(0xFF2E7D32), // Green
+        Color(0xFF0277BD), // Light Blue
+        Color(0xFF558B2F), // Light Green
+        Color(0xFF6D4C41), // Deep Brown
+        Color(0xFF283593)  // Indigo
+    )
 
     Scaffold(
         topBar = {
@@ -82,22 +100,29 @@ fun GenreScreen(
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            items(state.genres, key = { it.id }) { genre ->
+                            itemsIndexed(state.genres, key = { _, genre -> genre.id }) { index, genre ->
                                 Card(
                                     onClick = { onGenreClick(genre) },
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = genreColors[index % genreColors.size]
+                                    ),
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .heightIn(min = 80.dp)
+                                        .height(100.dp)
                                 ) {
                                     Box(
-                                        modifier = Modifier.fillMaxSize(),
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(16.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
                                             text = genre.name,
-                                            style = MaterialTheme.typography.titleMedium,
-                                            textAlign = TextAlign.Center,
-                                            modifier = Modifier.padding(8.dp)
+                                            color = Color.White,
+                                            style = MaterialTheme.typography.titleMedium.copy(
+                                                fontWeight = FontWeight.Bold
+                                            ),
+                                            textAlign = TextAlign.Center
                                         )
                                     }
                                 }
