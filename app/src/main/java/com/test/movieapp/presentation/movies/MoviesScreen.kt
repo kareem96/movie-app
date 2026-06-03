@@ -42,6 +42,7 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
 import coil.compose.AsyncImage
+import com.test.movieapp.data.remote.api.ApiConstants
 import com.test.movieapp.domain.model.Movie
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -177,7 +178,7 @@ fun MovieItem(
                 .fillMaxWidth()
                 .padding(12.dp)
         ) {
-            val posterUrl = movie.posterPath?.let { "https://image.tmdb.org/t/p/w185$it" }
+            val posterUrl = movie.posterPath?.let { "${ApiConstants.IMAGE_BASE_URL_W185}$it" }
             if (posterUrl != null) {
                 AsyncImage(
                     model = posterUrl,

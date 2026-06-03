@@ -1,5 +1,6 @@
 package com.test.movieapp.presentation.detail
 
+import android.annotation.SuppressLint
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.background
@@ -51,6 +52,7 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
 import coil.compose.AsyncImage
+import com.test.movieapp.data.remote.api.ApiConstants
 import com.test.movieapp.domain.model.MovieDetail
 import com.test.movieapp.domain.model.Review
 
@@ -217,7 +219,7 @@ fun DetailScreen(
 
 @Composable
 fun BackdropSection(backdropPath: String?, title: String) {
-    val backdropUrl = backdropPath?.let { "https://image.tmdb.org/t/p/w780$it" }
+    val backdropUrl = backdropPath?.let { "${ApiConstants.IMAGE_BASE_URL_W780}$it" }
     if (backdropUrl != null) {
         AsyncImage(
             model = backdropUrl,
@@ -252,7 +254,7 @@ fun InfoSection(detail: MovieDetail) {
             .padding(horizontal = 16.dp)
     ) {
         // Poster Image
-        val posterUrl = detail.posterPath?.let { "https://image.tmdb.org/t/p/w92$it" }
+        val posterUrl = detail.posterPath?.let { "${ApiConstants.IMAGE_BASE_URL_W92}$it" }
         if (posterUrl != null) {
             AsyncImage(
                 model = posterUrl,
@@ -378,11 +380,12 @@ fun TrailerSection(videoKey: String?) {
         if (videoKey != null) {
             AndroidView(
                 factory = { context ->
+                    @SuppressLint("SetJavaScriptEnabled")
                     WebView(context).apply {
                         settings.javaScriptEnabled = true
                         settings.mediaPlaybackRequiresUserGesture = false
                         webViewClient = WebViewClient()
-                        loadUrl("https://www.youtube.com/embed/$videoKey")
+                        loadUrl("${ApiConstants.YOUTUBE_EMBED_URL}$videoKey")
                     }
                 },
                 modifier = Modifier
