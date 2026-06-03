@@ -383,6 +383,7 @@ fun TrailerSection(videoKey: String?) {
                     @SuppressLint("SetJavaScriptEnabled")
                     WebView(context).apply {
                         settings.javaScriptEnabled = true
+                        settings.domStorageEnabled = true
                         settings.mediaPlaybackRequiresUserGesture = false
                         webViewClient = WebViewClient()
                         loadUrl("${ApiConstants.YOUTUBE_EMBED_URL}$videoKey")
@@ -394,11 +395,33 @@ fun TrailerSection(videoKey: String?) {
                     .clip(MaterialTheme.shapes.medium)
             )
         } else {
-            Text(
-                text = "No trailer available",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(220.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = MaterialTheme.shapes.medium
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "▶",
+                        style = MaterialTheme.typography.displayMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "No trailer available",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
     }
 }
