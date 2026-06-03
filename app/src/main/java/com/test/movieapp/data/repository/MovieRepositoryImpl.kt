@@ -7,6 +7,7 @@ import com.test.movieapp.data.mapper.toDomain
 import com.test.movieapp.data.remote.api.MovieApiService
 import com.test.movieapp.data.remote.api.MoviePagingSource
 import com.test.movieapp.data.remote.api.ReviewPagingSource
+import com.test.movieapp.data.remote.api.SearchMoviePagingSource
 import com.test.movieapp.domain.model.Genre
 import com.test.movieapp.domain.model.Movie
 import com.test.movieapp.domain.model.MovieDetail
@@ -61,5 +62,12 @@ class MovieRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    override fun searchMovies(query: String): Flow<PagingData<Movie>> {
+        return Pager(
+            config = PagingConfig(pageSize = 20, enablePlaceholders = false),
+            pagingSourceFactory = { SearchMoviePagingSource(apiService, query) }
+        ).flow
     }
 }

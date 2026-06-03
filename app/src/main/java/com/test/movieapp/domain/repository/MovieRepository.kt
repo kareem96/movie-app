@@ -14,4 +14,5 @@ interface MovieRepository {
     suspend fun getMovieDetail(movieId: Int): Result<MovieDetail>
     fun getMovieReviews(movieId: Int): Flow<PagingData<Review>>
     suspend fun getMovieVideos(movieId: Int): Result<List<Video>>
+    fun searchMovies(query: String): Flow<PagingData<Movie>>
 }
