@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -28,21 +29,25 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -63,6 +68,7 @@ fun DetailScreen(
     onBackClick: () -> Unit,
     viewModel: DetailViewModel = hiltViewModel()
 ) {
+    val listState = rememberLazyListState()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val lazyReviewItems = viewModel.reviewsPaging.collectAsLazyPagingItems()
 
@@ -70,143 +76,140 @@ fun DetailScreen(
         viewModel.loadMovieDetail(movieId)
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(uiState.movieDetail?.title ?: "Movie Detail") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                }
-            )
+    val backdropHeightPx = with(LocalDensity.current) { 280.dp.toPx() }
+
+    val appBarAlpha by remember {
+        derivedStateOf {
+            val offset = listState.layoutInfo.visibleItemsInfo
+                .firstOrNull { it.index == 0 }?.offset ?: -backdropHeightPx.toInt()
+            (-offset / backdropHeightPx).coerceIn(0f, 1f)
         }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentAlignment = Alignment.Center
-        ) {
-            when {
-                uiState.isLoading -> {
-                    CircularProgressIndicator()
-                }
-                uiState.error != null -> {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = uiState.error ?: "Failed to load movie details",
-                            color = MaterialTheme.colorScheme.error,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-                        Button(onClick = { viewModel.loadMovieDetail(movieId) }) {
-                            Text("Retry")
-                        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        when {
+            uiState.isLoading -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+            uiState.error != null -> {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = uiState.error ?: "Failed to load movie details",
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    Button(onClick = { viewModel.loadMovieDetail(movieId) }) {
+                        Text("Retry")
                     }
                 }
-                uiState.movieDetail != null -> {
-                    val detail = uiState.movieDetail!!
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        // 1. Backdrop Image
-                        item {
-                            BackdropSection(detail.backdropPath, detail.title)
-                        }
+            }
+            uiState.movieDetail != null -> {
+                val detail = uiState.movieDetail!!
+                val appendReviewState = lazyReviewItems.loadState.append
 
-                        // 2. Info Section
-                        item {
-                            InfoSection(detail)
-                        }
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // 1. Backdrop Image
+                    item {
+                        BackdropSection(
+                            backdropPath = detail.backdropPath,
+                            title = detail.title,
+                            height = 280.dp
+                        )
+                    }
 
-                        // 3. Overview Section
-                        item {
-                            OverviewSection(detail.overview)
-                        }
+                    // 2. Info Section
+                    item {
+                        InfoSection(detail)
+                    }
 
-                        // 4. Trailer Section
-                        item {
-                            TrailerSection(uiState.trailer?.key)
-                        }
+                    // 3. Overview Section
+                    item {
+                        OverviewSection(detail.overview)
+                    }
 
-                        // 5. Reviews Header
+                    // 4. Trailer Section
+                    item {
+                        TrailerSection(uiState.trailer?.key)
+                    }
+
+                    // 5. Reviews Header
+                    item {
+                        Text(
+                            text = "Reviews",
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+
+                    // Reviews Empty State checking
+                    if (lazyReviewItems.loadState.refresh is LoadState.NotLoading && lazyReviewItems.itemCount == 0) {
                         item {
                             Text(
-                                text = "Reviews",
-                                style = MaterialTheme.typography.titleLarge,
+                                text = "No reviews yet",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    // Reviews Paging List
+                    items(
+                        count = lazyReviewItems.itemCount,
+                        key = lazyReviewItems.itemKey { it.id },
+                        contentType = lazyReviewItems.itemContentType { "review" }
+                    ) { index ->
+                        lazyReviewItems[index]?.let { review ->
+                            ReviewItem(
+                                review = review,
                                 modifier = Modifier.padding(horizontal = 16.dp)
                             )
                         }
+                    }
 
-                        // Reviews Empty State checking
-                        val refreshReviewState = lazyReviewItems.loadState.refresh
-                        if (refreshReviewState is LoadState.NotLoading && lazyReviewItems.itemCount == 0) {
-                            item {
+                    // Review pagination loading states
+                    if (appendReviewState is LoadState.Loading) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
+                    } else if (appendReviewState is LoadState.Error) {
+                        item {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
                                 Text(
-                                    text = "No reviews yet",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    text = appendReviewState.error.localizedMessage ?: "Failed to load more reviews",
+                                    color = MaterialTheme.colorScheme.error,
+                                    textAlign = TextAlign.Center
                                 )
-                            }
-                        }
-
-                        // Reviews Paging List
-                        items(
-                            count = lazyReviewItems.itemCount,
-                            key = lazyReviewItems.itemKey { it.id },
-                            contentType = lazyReviewItems.itemContentType { "review" }
-                        ) { index ->
-                            val review = lazyReviewItems[index]
-                            if (review != null) {
-                                ReviewItem(
-                                    review = review,
-                                    modifier = Modifier.padding(horizontal = 16.dp)
-                                )
-                            }
-                        }
-
-                        // Review pagination loading states
-                        val appendReviewState = lazyReviewItems.loadState.append
-                        if (appendReviewState is LoadState.Loading) {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator()
-                                }
-                            }
-                        } else if (appendReviewState is LoadState.Error) {
-                            item {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        text = appendReviewState.error.localizedMessage ?: "Failed to load more reviews",
-                                        color = MaterialTheme.colorScheme.error,
-                                        textAlign = TextAlign.Center
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Button(onClick = { lazyReviewItems.retry() }) {
-                                        Text("Retry")
-                                    }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(onClick = { lazyReviewItems.retry() }) {
+                                    Text("Retry")
                                 }
                             }
                         }
@@ -214,11 +217,40 @@ fun DetailScreen(
                 }
             }
         }
+
+        // Overlay AppBar — selalu tampil di atas
+        val title = uiState.movieDetail?.title ?: ""
+        TopAppBar(
+            title = {
+                if (appBarAlpha > 0.5f) {
+                    Text(
+                        text = title,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            },
+            navigationIcon = {
+                IconButton(onClick = onBackClick) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = if (appBarAlpha > 0.5f)
+                            MaterialTheme.colorScheme.onSurface
+                        else Color.White
+                    )
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = appBarAlpha)
+            ),
+            modifier = Modifier.align(Alignment.TopCenter)
+        )
     }
 }
 
 @Composable
-fun BackdropSection(backdropPath: String?, title: String) {
+fun BackdropSection(backdropPath: String?, title: String, height: Dp) {
     val backdropUrl = backdropPath?.let { "${ApiConstants.IMAGE_BASE_URL_W780}$it" }
     if (backdropUrl != null) {
         AsyncImage(
@@ -227,13 +259,13 @@ fun BackdropSection(backdropPath: String?, title: String) {
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(220.dp)
+                .height(height)
         )
     } else {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(220.dp)
+                .height(height)
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
