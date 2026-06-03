@@ -17,7 +17,6 @@ import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.test.movieapp.domain.model.Genre
+import com.test.movieapp.presentation.components.GenreCardShimmer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,7 +86,17 @@ fun GenreScreen(
         ) {
             when (val state = uiState) {
                 is GenreUiState.Loading -> {
-                    CircularProgressIndicator()
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        contentPadding = PaddingValues(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(6) {
+                            GenreCardShimmer()
+                        }
+                    }
                 }
                 is GenreUiState.Error -> {
                     Column(

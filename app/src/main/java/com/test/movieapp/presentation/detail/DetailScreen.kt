@@ -68,7 +68,9 @@ import coil.request.ImageRequest
 import com.test.movieapp.data.remote.api.ApiConstants
 import com.test.movieapp.domain.model.MovieDetail
 import com.test.movieapp.domain.model.Review
+import com.test.movieapp.presentation.components.DetailShimmer
 import com.test.movieapp.presentation.components.MoviePosterImage
+import com.test.movieapp.presentation.util.formatReleaseDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -100,9 +102,7 @@ fun DetailScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         when {
             uiState.isLoading -> {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center)
-                )
+                DetailShimmer()
             }
             uiState.error != null -> {
                 Column(
@@ -360,7 +360,7 @@ fun InfoSection(detail: MovieDetail) {
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Release Date: ${detail.releaseDate ?: "-"}",
+                text = "Release Date: ${formatReleaseDate(detail.releaseDate)}",
                 style = MaterialTheme.typography.bodyMedium
             )
             Spacer(modifier = Modifier.height(4.dp))

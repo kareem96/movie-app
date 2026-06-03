@@ -34,6 +34,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,7 +56,9 @@ import androidx.paging.compose.itemKey
 import coil.compose.AsyncImage
 import com.test.movieapp.data.remote.api.ApiConstants
 import com.test.movieapp.domain.model.Movie
+import com.test.movieapp.presentation.components.MovieItemShimmer
 import com.test.movieapp.presentation.components.MoviePosterImage
+import com.test.movieapp.presentation.util.formatReleaseDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -152,100 +156,119 @@ fun MoviesScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            when {
-                refreshState is LoadState.Loading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-                refreshState is LoadState.Error -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = refreshState.error.localizedMessage ?: "Failed to load movies",
-                            color = MaterialTheme.colorScheme.error,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-                        Button(onClick = { lazyMovieItems.retry() }) {
-                            Text("Retry")
-                        }
-                    }
-                }
-                refreshState is LoadState.NotLoading && lazyMovieItems.itemCount == 0 -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        val message = if (isSearchActive && searchQuery.isNotBlank()) {
-                            "No movies found for \"$searchQuery\""
-                        } else {
-                            "No movies found"
-                        }
-                        Text(
-                            text = message,
-                            style = MaterialTheme.typography.bodyLarge,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(16.dp)
-                        )
-                    }
-                }
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(
-                            bottom = WindowInsets.navigationBars
-                                .asPaddingValues()
-                                .calculateBottomPadding() + 16.dp
-                        )
-                    ) {
-                        items(
-                            count = lazyMovieItems.itemCount,
-                            key = lazyMovieItems.itemKey { it.id },
-                            contentType = lazyMovieItems.itemContentType { "movie" }
-                        ) { index ->
-                            val movie = lazyMovieItems[index]
-                            if (movie != null) {
-                                MovieItem(
-                                    movie = movie,
-                                    onClick = { onMovieClick(movie) }
-                                )
+            val isRefreshing = refreshState is LoadState.Loading
+            val pullRefreshState = rememberPullToRefreshState()
+
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { lazyMovieItems.refresh() },
+                state = pullRefreshState,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                when {
+                    refreshState is LoadState.Loading -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(
+                                bottom = WindowInsets.navigationBars
+                                    .asPaddingValues()
+                                    .calculateBottomPadding() + 16.dp
+                            )
+                        ) {
+                            items(5) {
+                                MovieItemShimmer()
                             }
                         }
-
-                        // Handle append (pagination scrolling) states
-                        if (appendState is LoadState.Loading) {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator(modifier = Modifier.size(36.dp))
+                    }
+                    refreshState is LoadState.Error -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = refreshState.error.localizedMessage ?: "Failed to load movies",
+                                color = MaterialTheme.colorScheme.error,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                            Button(onClick = { lazyMovieItems.retry() }) {
+                                Text("Retry")
+                            }
+                        }
+                    }
+                    refreshState is LoadState.NotLoading && lazyMovieItems.itemCount == 0 -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            val message = if (isSearchActive && searchQuery.isNotBlank()) {
+                                "No movies found for \"$searchQuery\""
+                            } else {
+                                "No movies found"
+                            }
+                            Text(
+                                text = message,
+                                style = MaterialTheme.typography.bodyLarge,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
+                    }
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(
+                                bottom = WindowInsets.navigationBars
+                                    .asPaddingValues()
+                                    .calculateBottomPadding() + 16.dp
+                            )
+                        ) {
+                            items(
+                                count = lazyMovieItems.itemCount,
+                                key = lazyMovieItems.itemKey { it.id },
+                                contentType = lazyMovieItems.itemContentType { "movie" }
+                            ) { index ->
+                                val movie = lazyMovieItems[index]
+                                if (movie != null) {
+                                    MovieItem(
+                                        movie = movie,
+                                        onClick = { onMovieClick(movie) }
+                                    )
                                 }
                             }
-                        } else if (appendState is LoadState.Error) {
-                            item {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        text = appendState.error.localizedMessage ?: "Failed to load more movies",
-                                        color = MaterialTheme.colorScheme.error,
-                                        textAlign = TextAlign.Center
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Button(onClick = { lazyMovieItems.retry() }) {
-                                        Text("Retry")
+
+                            // Handle append (pagination scrolling) states
+                            if (appendState is LoadState.Loading) {
+                                item {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(modifier = Modifier.size(36.dp))
+                                    }
+                                }
+                            } else if (appendState is LoadState.Error) {
+                                item {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            text = appendState.error.localizedMessage ?: "Failed to load more movies",
+                                            color = MaterialTheme.colorScheme.error,
+                                            textAlign = TextAlign.Center
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Button(onClick = { lazyMovieItems.retry() }) {
+                                            Text("Retry")
+                                        }
                                     }
                                 }
                             }
@@ -296,7 +319,7 @@ fun MovieItem(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Release Date: ${movie.releaseDate ?: "-"}",
+                    text = "Release Date: ${formatReleaseDate(movie.releaseDate)}",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(modifier = Modifier.height(8.dp))
