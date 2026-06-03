@@ -27,7 +27,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -47,6 +46,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
@@ -70,6 +70,7 @@ import com.test.movieapp.domain.model.MovieDetail
 import com.test.movieapp.domain.model.Review
 import com.test.movieapp.presentation.components.DetailShimmer
 import com.test.movieapp.presentation.components.MoviePosterImage
+import com.test.movieapp.presentation.components.StarRating
 import com.test.movieapp.presentation.util.formatReleaseDate
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -296,29 +297,49 @@ fun DetailScreen(
 @Composable
 fun BackdropSection(backdropPath: String?, title: String, height: Dp) {
     val backdropUrl = backdropPath?.let { "${ApiConstants.IMAGE_BASE_URL_W780}$it" }
-    if (backdropUrl != null) {
-        AsyncImage(
-            model = backdropUrl,
-            contentDescription = title,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(height)
-        )
-    } else {
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(height)
+    ) {
+        if (backdropUrl != null) {
+            AsyncImage(
+                model = backdropUrl,
+                contentDescription = title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "No Backdrop Image",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        // Gradient overlay bottom
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(height)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "No Backdrop Image",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+                .height(100.dp)
+                .align(Alignment.BottomCenter)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color.Black.copy(alpha = 0.7f)
+                        )
+                    )
+                )
+        )
     }
 }
 
@@ -369,21 +390,10 @@ fun InfoSection(detail: MovieDetail) {
                 style = MaterialTheme.typography.bodyMedium
             )
             Spacer(modifier = Modifier.height(4.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = "Rating",
-                    tint = Color(0xFFFFC107),
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = String.format("%.1f", detail.voteAverage),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
+            StarRating(
+                voteAverage = detail.voteAverage,
+                modifier = Modifier.padding(vertical = 4.dp)
+            )
             Spacer(modifier = Modifier.height(8.dp))
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
