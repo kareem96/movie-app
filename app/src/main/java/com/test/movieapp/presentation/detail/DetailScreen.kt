@@ -48,6 +48,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
 import coil.compose.AsyncImage
 import com.test.movieapp.domain.model.MovieDetail
@@ -162,7 +163,8 @@ fun DetailScreen(
                         // Reviews Paging List
                         items(
                             count = lazyReviewItems.itemCount,
-                            key = lazyReviewItems.itemKey { it.id }
+                            key = lazyReviewItems.itemKey { it.id },
+                            contentType = lazyReviewItems.itemContentType { "review" }
                         ) { index ->
                             val review = lazyReviewItems[index]
                             if (review != null) {
@@ -423,7 +425,6 @@ fun ReviewItem(review: Review, modifier: Modifier = Modifier) {
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                // Format the created date loosely if needed, displaying raw string for now
                 val displayDate = review.createdAt.substringBefore("T")
                 Text(
                     text = displayDate,

@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
 import coil.compose.AsyncImage
 import com.test.movieapp.domain.model.Movie
@@ -108,7 +109,8 @@ fun MoviesScreen(
                 ) {
                     items(
                         count = lazyMovieItems.itemCount,
-                        key = lazyMovieItems.itemKey { it.id }
+                        key = lazyMovieItems.itemKey { it.id },
+                        contentType = lazyMovieItems.itemContentType { "movie" }
                     ) { index ->
                         val movie = lazyMovieItems[index]
                         if (movie != null) {

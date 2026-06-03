@@ -82,7 +82,7 @@ fun GenreScreen(
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            items(state.genres) { genre ->
+                            items(state.genres, key = { it.id }) { genre ->
                                 Card(
                                     onClick = { onGenreClick(genre) },
                                     modifier = Modifier
