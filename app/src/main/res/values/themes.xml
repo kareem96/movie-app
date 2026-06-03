@@ -3,4 +3,11 @@
     <style name="Theme.MovieApp" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:windowBackground">@android:color/white</item>
     </style>
+
+    <style name="Theme.MovieApp.SplashScreen" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#1B5E20</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
+        <item name="windowSplashScreenIconBackgroundColor">#1B5E20</item>
+        <item name="postSplashScreenTheme">@style/Theme.MovieApp</item>
+    </style>
 </resources>
