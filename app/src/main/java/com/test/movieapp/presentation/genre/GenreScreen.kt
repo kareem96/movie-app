@@ -11,11 +11,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -36,6 +41,8 @@ import com.test.movieapp.domain.model.Genre
 @Composable
 fun GenreScreen(
     onGenreClick: (Genre) -> Unit,
+    onThemeToggle: () -> Unit,
+    isDarkTheme: Boolean,
     viewModel: GenreViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -58,7 +65,16 @@ fun GenreScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Movie Genres") }
+                title = { Text("Movie Genres") },
+                actions = {
+                    IconButton(onClick = onThemeToggle) {
+                        Icon(
+                            imageVector = if (isDarkTheme) Icons.Default.LightMode
+                                          else Icons.Default.DarkMode,
+                            contentDescription = "Toggle theme"
+                        )
+                    }
+                }
             )
         }
     ) { paddingValues ->
