@@ -16,18 +16,28 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,7 +48,12 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,6 +64,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemContentType
@@ -56,8 +72,10 @@ import androidx.paging.compose.itemKey
 import coil.compose.AsyncImage
 import com.test.movieapp.data.remote.api.ApiConstants
 import com.test.movieapp.domain.model.Movie
+import com.test.movieapp.presentation.components.EmptyStateView
 import com.test.movieapp.presentation.components.MovieItemShimmer
 import com.test.movieapp.presentation.components.MoviePosterImage
+import com.test.movieapp.presentation.components.StarRating
 import com.test.movieapp.presentation.util.formatReleaseDate
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,6 +95,12 @@ fun MoviesScreen(
 
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val isSearchActive by viewModel.isSearchActive.collectAsStateWithLifecycle()
+
+    val listState = rememberLazyListState()
+    val showScrollToTop by remember {
+        derivedStateOf { listState.firstVisibleItemIndex > 3 }
+    }
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(genreId) {
         viewModel.setGenreId(genreId)
@@ -149,6 +173,27 @@ fun MoviesScreen(
                     }
                 )
             }
+        },
+        floatingActionButton = {
+            AnimatedVisibility(
+                visible = showScrollToTop,
+                enter = scaleIn() + fadeIn(),
+                exit = scaleOut() + fadeOut()
+            ) {
+                FloatingActionButton(
+                    onClick = {
+                        coroutineScope.launch {
+                            listState.animateScrollToItem(0)
+                        }
+                    },
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowUp,
+                        contentDescription = "Scroll to top"
+                    )
+                }
+            }
         }
     ) { paddingValues ->
         Box(
@@ -156,12 +201,23 @@ fun MoviesScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            val isRefreshing = refreshState is LoadState.Loading
+            var isRefreshing by remember { mutableStateOf(false) }
+
+            LaunchedEffect(refreshState) {
+                if (refreshState is LoadState.NotLoading ||
+                    refreshState is LoadState.Error) {
+                    isRefreshing = false
+                }
+            }
+
             val pullRefreshState = rememberPullToRefreshState()
 
             PullToRefreshBox(
                 isRefreshing = isRefreshing,
-                onRefresh = { lazyMovieItems.refresh() },
+                onRefresh = {
+                    isRefreshing = true
+                    lazyMovieItems.refresh()
+                },
                 state = pullRefreshState,
                 modifier = Modifier.fillMaxSize()
             ) {
@@ -200,25 +256,24 @@ fun MoviesScreen(
                         }
                     }
                     refreshState is LoadState.NotLoading && lazyMovieItems.itemCount == 0 -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            val message = if (isSearchActive && searchQuery.isNotBlank()) {
-                                "No movies found for \"$searchQuery\""
-                            } else {
-                                "No movies found"
-                            }
-                            Text(
-                                text = message,
-                                style = MaterialTheme.typography.bodyLarge,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(16.dp)
-                            )
-                        }
+                        val emptyTitle = if (isSearchActive && searchQuery.isNotBlank())
+                            "No Results for \"$searchQuery\""
+                        else "No Movies Found"
+
+                        val emptySubtitle = if (isSearchActive && searchQuery.isNotBlank())
+                            "Try a different search term"
+                        else "No movies available for this genre"
+
+                        EmptyStateView(
+                            icon = if (isSearchActive) Icons.Default.SearchOff
+                                   else Icons.Default.Movie,
+                            title = emptyTitle,
+                            subtitle = emptySubtitle
+                        )
                     }
                     else -> {
                         LazyColumn(
+                            state = listState,
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(
                                 bottom = WindowInsets.navigationBars
@@ -323,21 +378,7 @@ fun MovieItem(
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = "Rating",
-                        tint = Color(0xFFFFC107),
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = String.format("%.1f", movie.voteAverage),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+                StarRating(voteAverage = movie.voteAverage)
             }
         }
     }
