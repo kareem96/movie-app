@@ -14,6 +14,9 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
+import com.test.movieapp.data.remote.NetworkMonitor
 import javax.inject.Singleton
 
 @Module
@@ -75,4 +78,10 @@ object NetworkModule {
     fun provideMovieApiService(retrofit: Retrofit): MovieApiService {
         return retrofit.create(MovieApiService::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideNetworkMonitor(
+        @ApplicationContext context: Context
+    ): NetworkMonitor = NetworkMonitor(context)
 }

@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.MovieFilter
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -35,7 +36,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.test.movieapp.domain.model.Genre
+import com.test.movieapp.presentation.components.EmptyStateView
 import com.test.movieapp.presentation.components.GenreCardShimmer
+import com.test.movieapp.presentation.components.NoInternetScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,6 +49,7 @@ fun GenreScreen(
     viewModel: GenreViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isOnline by viewModel.isOnline.collectAsStateWithLifecycle()
 
     val genreColors = listOf(
         Color(0xFF1565C0), // Blue
@@ -84,8 +88,11 @@ fun GenreScreen(
                 .padding(paddingValues),
             contentAlignment = Alignment.Center
         ) {
-            when (val state = uiState) {
-                is GenreUiState.Loading -> {
+            if (!isOnline && uiState is GenreUiState.Error) {
+                NoInternetScreen(onRetry = { viewModel.loadGenres() })
+            } else {
+                when (val state = uiState) {
+                    is GenreUiState.Loading -> {
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(2),
                         contentPadding = PaddingValues(16.dp),
@@ -117,7 +124,16 @@ fun GenreScreen(
                 }
                 is GenreUiState.Success -> {
                     if (state.genres.isEmpty()) {
-                        Text("No genres found")
+                        EmptyStateView(
+                            icon = Icons.Default.MovieFilter,
+                            title = "No Genres Found",
+                            subtitle = "Could not load movie genres.\nPlease try again.",
+                            action = {
+                                Button(onClick = { viewModel.loadGenres() }) {
+                                    Text("Retry")
+                                }
+                            }
+                        )
                     } else {
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(2),
@@ -159,4 +175,5 @@ fun GenreScreen(
             }
         }
     }
+}
 }
